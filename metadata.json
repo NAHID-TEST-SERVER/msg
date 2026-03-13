@@ -1,0 +1,9 @@
+{
+  "name": "NextGen Social",
+  "description": "A scalable next-generation social media platform with real-time messaging, AI users, and modular architecture.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
