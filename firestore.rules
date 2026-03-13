@@ -1,0 +1,148 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Fields: uid, username, displayName, email, profilePhoto, coverPhoto, bio, isBot, createdAt, followersCount, followingCount, friendsCount, role
+    //
+    // Collection: posts
+    // Fields: authorId, authorName, authorPhoto, content, media, type, createdAt, likesCount, commentsCount
+    //
+    // Collection: posts/{postId}/comments
+    // Fields: postId, authorId, authorName, authorPhoto, text, createdAt, likesCount
+    //
+    // Collection: stories
+    // Fields: userId, media, createdAt, expiresAt
+    //
+    // Collection: friend_requests
+    // Fields: senderId, receiverId, status, createdAt
+    //
+    // Collection: notifications
+    // Fields: userId, type, fromId, fromName, postId, text, read, createdAt
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "mdnahidulislamnahid404@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidUserCreate(data) {
+      return data.keys().hasAll(['uid', 'username', 'displayName', 'email']) &&
+             data.uid is string && data.username is string && data.displayName is string &&
+             data.email is string && data.username.size() > 0 && data.username.size() < 30;
+    }
+
+    function isValidUserUpdate(data) {
+      return (!('uid' in data) || data.uid is string) &&
+             (!('username' in data) || (data.username is string && data.username.size() > 0 && data.username.size() < 30)) &&
+             (!('displayName' in data) || data.displayName is string) &&
+             (!('email' in data) || data.email is string);
+    }
+
+    function isValidPost(data) {
+      return data.keys().hasAll(['authorId', 'content', 'createdAt']) &&
+             data.authorId is string && data.content is string &&
+             data.content.size() < 5000;
+    }
+
+    function isValidComment(data) {
+      return data.keys().hasAll(['postId', 'authorId', 'text', 'createdAt']) &&
+             data.text is string && data.text.size() < 1000;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUserCreate(request.resource.data) && request.resource.data.role == 'user';
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin()) && 
+                    isValidUserUpdate(request.resource.data) &&
+                    (isOwner(userId) ? (!('role' in request.resource.data) || request.resource.data.role == resource.data.role) : true);
+    }
+
+    match /posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.authorId == request.auth.uid && isValidPost(request.resource.data);
+      allow update: if isAuthenticated() && (resource.data.authorId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.authorId == request.auth.uid || isAdmin());
+
+      match /comments/{commentId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() && request.resource.data.authorId == request.auth.uid && isValidComment(request.resource.data);
+        allow update: if isAuthenticated() && (resource.data.authorId == request.auth.uid || isAdmin());
+        allow delete: if isAuthenticated() && (resource.data.authorId == request.auth.uid || isAdmin());
+      }
+    }
+
+    match /stories/{storyId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /friend_requests/{requestId} {
+      allow read: if isAuthenticated() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+      allow update: if isAuthenticated() && (resource.data.receiverId == request.auth.uid || resource.data.senderId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid || isAdmin());
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    match /reports/{reportId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /groups/{groupId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /marketplace/{itemId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /analytics/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /admin_logs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /login_logs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /media_files/{fileId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /comments/{commentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.authorId == request.auth.uid && isValidComment(request.resource.data);
+      allow update: if isAuthenticated() && (resource.data.authorId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.authorId == request.auth.uid || isAdmin());
+    }
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the platform",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "username": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "profilePhoto": { "type": "string" },
+        "coverPhoto": { "type": "string" },
+        "bio": { "type": "string" },
+        "isBot": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "followersCount": { "type": "integer" },
+        "followingCount": { "type": "integer" },
+        "friendsCount": { "type": "integer" },
+        "role": { "type": "string", "enum": ["user", "admin"] }
+      },
+      "required": ["uid", "username", "displayName", "email"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "A social media post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorPhoto": { "type": "string" },
+        "content": { "type": "string" },
+        "media": { "type": "array", "items": { "type": "string" } },
+        "type": { "type": "string", "enum": ["text", "image", "video", "poll"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "likesCount": { "type": "integer" },
+        "commentsCount": { "type": "integer" },
+        "reactions": { "type": "object" }
+      },
+      "required": ["authorId", "content", "createdAt"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "A comment on a post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "postId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorPhoto": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "likesCount": { "type": "integer" }
+      },
+      "required": ["postId", "authorId", "text", "createdAt"]
+    },
+    "Story": {
+      "title": "Story",
+      "description": "A temporary story",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "media": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "media", "createdAt", "expiresAt"]
+    },
+    "FriendRequest": {
+      "title": "Friend Request",
+      "description": "A request to be friends",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["senderId", "receiverId", "status", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "A platform notification",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string" },
+        "fromId": { "type": "string" },
+        "fromName": { "type": "string" },
+        "postId": { "type": "string" },
+        "text": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": { "schema": "User", "description": "User profiles" },
+    "/posts/{postId}": { "schema": "Post", "description": "Social posts" },
+    "/posts/{postId}/comments/{commentId}": { "schema": "Comment", "description": "Post comments" },
+    "/stories/{storyId}": { "schema": "Story", "description": "User stories" },
+    "/friend_requests/{requestId}": { "schema": "FriendRequest", "description": "Friend requests" },
+    "/notifications/{notificationId}": { "schema": "Notification", "description": "User notifications" }
+  }
+}
